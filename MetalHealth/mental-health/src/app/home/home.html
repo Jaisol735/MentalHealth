@@ -1,0 +1,494 @@
+<app-navbar></app-navbar>
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <!-- Welcome Section - Show when no assessment completed today -->
+      <div class="text-center mb-5 fade-in" *ngIf="!showResults && !showDailySummary && !isAssessmentComplete && !hasCompletedDailyQuestions">
+        <div class="welcome-icon mb-4">
+          <div class="icon-circle">
+            <i class="fas fa-heart-pulse"></i>
+          </div>
+        </div>
+        <h1 class="display-5 fw-bold mb-3 gradient-text">Welcome to HealthCare+</h1>
+        <p class="lead text-muted mb-4">Take a quick mental health assessment to get personalized insights and recommendations.</p>
+        <div class="welcome-stats d-flex justify-content-center gap-4 mb-4">
+          <div class="stat-item">
+            <div class="stat-number">2-3</div>
+            <div class="stat-label">Minutes</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">10</div>
+            <div class="stat-label">Questions</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">AI</div>
+            <div class="stat-label">Powered</div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-lg px-5 hover-glow" (click)="startAssessment()">
+          <i class="fas fa-play me-2"></i>Start Daily Assessment
+        </button>
+      </div>
+
+      <!-- Daily Questions Completed - Show Results -->
+      <div class="text-center mb-5 fade-in" *ngIf="hasCompletedDailyQuestions && !showDailySummary && !showResults">
+        <div class="welcome-icon mb-4">
+          <div class="icon-circle bg-success">
+            <i class="fas fa-check"></i>
+          </div>
+        </div>
+        <h1 class="display-5 fw-bold mb-3 gradient-text">Daily Check-in Complete!</h1>
+        <p class="lead text-muted mb-4">You've completed today's mental health assessment. View your results and recommendations below.</p>
+        <div class="d-flex justify-content-center gap-3">
+          <button class="btn btn-primary btn-lg px-4 hover-glow" (click)="showResults = true">
+            <i class="fas fa-chart-line me-2"></i>View Results
+          </button>
+          <button class="btn btn-outline-secondary btn-lg px-4" (click)="startDailySummary()">
+            <i class="fas fa-pen me-2"></i>Write Daily Summary
+          </button>
+          "/km\"
+        </div>
+      </div>
+
+      <!-- Daily Summary Writing Section -->
+      <div class="card hover-lift" *ngIf="showDailySummary" [@slideInOut]>
+        <div class="card-header gradient-info text-white position-relative overflow-hidden">
+          <div class="header-pattern"></div>
+          <div class="position-relative">
+            <h5 class="mb-2 fw-bold">
+              <i class="fas fa-pen me-2"></i>{{ isUpdatingSummary ? 'Update Daily Summary' : 'Daily Summary' }}
+            </h5>
+            <p class="mb-0 opacity-75">
+              {{ isUpdatingSummary ? 'Update your daily summary with new thoughts and reflections.' : 'Reflect on your day and write about your thoughts, feelings, and experiences.' }}
+            </p>
+          </div>
+        </div>
+        <div class="card-body p-4">
+          <div class="mb-4">
+            <label class="form-label fw-semibold">How was your day? What's on your mind?</label>
+            <textarea 
+              class="form-control form-control-lg focus-ring" 
+              [(ngModel)]="dailySummaryText"
+              placeholder="Write about your day, your thoughts, feelings, achievements, challenges, or anything else you'd like to reflect on..."
+              rows="8"
+              style="min-height: 200px;">
+            </textarea>
+            <div class="form-text">
+              <i class="fas fa-info-circle me-1"></i>
+              This is your personal space to reflect and journal about your day. Your thoughts are private and secure.
+            </div>
+          </div>
+        </div>
+        <div class="card-footer bg-light border-0 p-4">
+          <div class="d-flex justify-content-between align-items-center">
+            <button 
+              class="btn btn-outline-secondary btn-lg px-4" 
+              (click)="skipDailySummary()">
+              <i class="fas fa-times me-2"></i>Skip for Now
+            </button>
+            <button 
+              class="btn btn-success btn-lg px-4 hover-glow" 
+              (click)="saveDailySummary()"
+              [disabled]="isSavingSummary || !dailySummaryText.trim()">
+              <span *ngIf="isSavingSummary" class="spinner-border spinner-border-sm me-2"></span>
+              <i *ngIf="!isSavingSummary" class="fas fa-save me-2"></i>
+              {{isSavingSummary ? 'Saving...' : (isUpdatingSummary ? 'Update Summary' : 'Save Summary')}}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Assessment Form -->
+      <div class="card hover-lift" *ngIf="!isAssessmentComplete && !showResults && !hasCompletedDailyQuestions && !showDailySummary" [@slideInOut]>
+        <div class="card-header gradient-primary text-white position-relative overflow-hidden">
+          <div class="header-pattern"></div>
+          <div class="position-relative">
+            <h5 class="mb-2 fw-bold">
+              <i class="fas fa-brain me-2"></i>Mental Health Assessment
+            </h5>
+            <div class="progress mt-3" style="height: 8px;">
+              <div class="progress-bar bg-white" [style.width.%]="getProgressPercentage()" 
+                   [@progressAnimation]></div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+              <small class="opacity-75">Question {{currentQuestionIndex + 1}} of {{getTotalQuestions()}}</small>
+              <small class="opacity-75">{{getProgressPercentage() | number:'1.0-0'}}% Complete</small>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-4">
+          <div class="question-container" [@questionAnimation]>
+            <div class="question-number mb-3">
+              <span class="badge bg-primary rounded-pill px-3 py-2">
+                Q{{currentQuestionIndex + 1}}
+              </span>
+            </div>
+            <h4 class="question-text mb-4 fw-semibold text-dark">
+              {{getCurrentQuestion().text}}
+            </h4>
+            
+            <!-- Select Dropdown -->
+            <div *ngIf="getCurrentQuestion().type === 'select'" class="mb-4">
+              <div class="form-floating">
+                <select 
+                  class="form-select form-select-lg focus-ring" 
+                  [(ngModel)]="answers[getCurrentQuestion().id]"
+                  name="{{getCurrentQuestion().id}}"
+                  id="select-{{getCurrentQuestion().id}}">
+                  <option *ngFor="let option of getCurrentQuestion().options" [value]="option.value">
+                    {{option.label}}
+                  </option>
+                </select>
+                <label for="select-{{getCurrentQuestion().id}}">Choose your answer</label>
+              </div>
+            </div>
+
+            <!-- Range Slider -->
+            <div *ngIf="getCurrentQuestion().type === 'range'" class="mb-4">
+              <div class="range-container p-4 bg-light rounded-3">
+                <div class="range-value-display text-center mb-3">
+                  <span class="range-value fw-bold text-primary fs-3">{{answers[getCurrentQuestion().id]}}</span>
+                  <span class="text-muted ms-2">/ {{getCurrentQuestion().max}}</span>
+                </div>
+                <input 
+                  type="range" 
+                  class="form-range focus-ring" 
+                  [min]="getCurrentQuestion().min" 
+                  [max]="getCurrentQuestion().max"
+                  [(ngModel)]="answers[getCurrentQuestion().id]"
+                  name="{{getCurrentQuestion().id}}">
+                <div class="range-labels d-flex justify-content-between mt-3">
+                  <span class="text-muted fw-medium">{{getCurrentQuestion().min}}</span>
+                  <span class="text-muted fw-medium">{{getCurrentQuestion().max}}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Number Input -->
+            <div *ngIf="getCurrentQuestion().type === 'number'" class="mb-4">
+              <div class="form-floating">
+                <input 
+                  type="number" 
+                  class="form-control form-control-lg focus-ring" 
+                  [min]="getCurrentQuestion().min" 
+                  [max]="getCurrentQuestion().max"
+                  [(ngModel)]="answers[getCurrentQuestion().id]"
+                  name="{{getCurrentQuestion().id}}"
+                  id="number-{{getCurrentQuestion().id}}"
+                  placeholder="Enter number">
+                <label for="number-{{getCurrentQuestion().id}}">Enter your answer</label>
+              </div>
+            </div>
+
+            <!-- Text Input -->
+            <div *ngIf="getCurrentQuestion().type === 'text'" class="mb-4">
+              <div class="form-floating">
+                <input 
+                  type="text" 
+                  class="form-control form-control-lg focus-ring" 
+                  [(ngModel)]="answers[getCurrentQuestion().id]"
+                  name="{{getCurrentQuestion().id}}"
+                  id="text-{{getCurrentQuestion().id}}"
+                  placeholder="Enter your answer">
+                <label for="text-{{getCurrentQuestion().id}}">Enter your answer</label>
+              </div>
+            </div>
+
+            <!-- Textarea Input -->
+            <div *ngIf="getCurrentQuestion().type === 'textarea'" class="mb-4">
+              <div class="form-floating">
+                <textarea 
+                  class="form-control form-control-lg focus-ring" 
+                  [(ngModel)]="answers[getCurrentQuestion().id]"
+                  name="{{getCurrentQuestion().id}}"
+                  id="textarea-{{getCurrentQuestion().id}}"
+                  placeholder="Enter your answer"
+                  rows="4"
+                  style="height: 120px;"></textarea>
+                <label for="textarea-{{getCurrentQuestion().id}}">Enter your answer</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer bg-light border-0 p-4">
+          <div class="d-flex justify-content-between align-items-center">
+            <button 
+              class="btn btn-outline-secondary btn-lg px-4" 
+              (click)="previousQuestion()" 
+              [disabled]="currentQuestionIndex === 0"
+              [class.disabled]="currentQuestionIndex === 0">
+              <i class="fas fa-arrow-left me-2"></i>Previous
+            </button>
+            
+            <div class="question-dots d-flex gap-2">
+              <span *ngFor="let q of questions; let i = index" 
+                    class="dot" 
+                    [class.active]="i === currentQuestionIndex"
+                    [class.completed]="i < currentQuestionIndex">
+              </span>
+            </div>
+            
+            <button 
+              *ngIf="!isLastQuestion()"
+              class="btn btn-primary btn-lg px-4 hover-glow" 
+              (click)="nextQuestion()">
+              Next<i class="fas fa-arrow-right ms-2"></i>
+            </button>
+            
+            <button 
+              *ngIf="isLastQuestion()"
+              class="btn btn-success btn-lg px-4 hover-glow" 
+              (click)="submitAssessment()"
+              [disabled]="isSubmitting">
+              <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2"></span>
+              <i *ngIf="!isSubmitting" class="fas fa-check me-2"></i>
+              {{isSubmitting ? 'Analyzing...' : 'Complete Assessment'}}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Section -->
+      <div class="card hover-lift" *ngIf="showResults && latestAssessment && !showDailySummary" [@slideInOut]>
+        <div class="card-header gradient-success text-white position-relative overflow-hidden">
+          <div class="header-pattern"></div>
+          <div class="position-relative">
+            <h5 class="mb-2 fw-bold">
+              <i class="fas fa-check-circle me-2"></i>Assessment Complete
+            </h5>
+            <small class="opacity-75">{{latestAssessment.createdAt | date:'medium'}}</small>
+          </div>
+        </div>
+        <div class="card-body p-4">
+          <!-- AI Analysis Results -->
+          <div class="analysis-section mb-4" [@fadeInUp]>
+            <div class="d-flex align-items-center mb-3">
+              <div class="icon-circle-sm bg-primary text-white me-3">
+                <i class="fas fa-brain"></i>
+              </div>
+              <h6 class="text-primary mb-0 fw-bold">AI Analysis Summary</h6>
+            </div>
+            <div class="alert alert-info">
+              <p class="mb-0 fw-medium">{{latestAssessment?.aiAnalysis?.summary || 'No analysis available'}}</p>
+            </div>
+          </div>
+
+          <!-- Risk Level -->
+          <div class="risk-section mb-4" [@fadeInUp]>
+            <div class="d-flex align-items-center mb-3">
+              <div class="icon-circle-sm bg-warning text-white me-3">
+                <i class="fas fa-shield-alt"></i>
+              </div>
+              <h6 class="text-primary mb-0 fw-bold">Risk Assessment</h6>
+            </div>
+            <div class="alert" [ngClass]="{
+              'alert-success': latestAssessment?.aiAnalysis?.riskLevel === 'Low',
+              'alert-warning': latestAssessment?.aiAnalysis?.riskLevel === 'Medium',
+              'alert-danger': latestAssessment?.aiAnalysis?.riskLevel === 'High'
+            }">
+              <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Risk Level: </strong>
+                <span class="ms-2 fw-bold" [ngClass]="getRiskLevelClass(latestAssessment?.aiAnalysis?.riskLevel)">
+                  {{latestAssessment?.aiAnalysis?.riskLevel || 'Unknown'}}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recommendations -->
+          <div class="recommendations-section mb-4" [@fadeInUp]>
+            <div class="d-flex align-items-center mb-3">
+              <div class="icon-circle-sm bg-info text-white me-3">
+                <i class="fas fa-lightbulb"></i>
+              </div>
+              <h6 class="text-primary mb-0 fw-bold">Recommendations</h6>
+            </div>
+            <div class="alert alert-light">
+              <div *ngIf="isArray(latestAssessment?.aiAnalysis?.recommendations)">
+                <ul class="mb-0 list-unstyled">
+                  <li *ngFor="let rec of getRecommendationsAsArray(latestAssessment?.aiAnalysis?.recommendations)" 
+                      class="d-flex align-items-start mb-2">
+                    <i class="fas fa-arrow-right text-primary me-2 mt-1"></i>
+                    <span>{{rec}}</span>
+                  </li>
+                </ul>
+              </div>
+              <p *ngIf="!isArray(latestAssessment?.aiAnalysis?.recommendations)" class="mb-0 fw-medium">
+                {{latestAssessment?.aiAnalysis?.recommendations || 'No recommendations available'}}
+              </p>
+            </div>
+          </div>
+
+          <!-- Doctor Recommendations -->
+          <div class="doctor-recommendations-section mb-4" [@fadeInUp] *ngIf="recommendedDoctors && recommendedDoctors.length > 0">
+            <div class="d-flex align-items-center mb-3">
+              <div class="icon-circle-sm bg-success text-white me-3">
+                <i class="fas fa-user-md"></i>
+              </div>
+              <h6 class="text-primary mb-0 fw-bold">Recommended Healthcare Professionals</h6>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3" *ngFor="let doctor of recommendedDoctors">
+                <div class="card h-100 border-0 shadow-sm doctor-card" (click)="viewDoctorDetails(doctor)">
+                  <div class="card-body p-3">
+                    <div class="d-flex align-items-start">
+                      <div class="me-3">
+                        <div class="doctor-icon-circle">
+                          <i class="fas fa-user-md text-success"></i>
+                        </div>
+                      </div>
+                      <div class="flex-grow-1">
+                        <h6 class="card-title mb-1 text-primary clickable-doctor-name">{{doctor.name}}</h6>
+                        <p class="card-text text-muted small mb-2">{{doctor.speciality}}</p>
+                        <p class="card-text small mb-2">{{doctor.details}}</p>
+                        <div class="d-flex align-items-center">
+                          <i class="fas fa-phone text-muted me-2 small"></i>
+                          <span class="small text-muted">{{doctor.phoneno}}</span>
+                        </div>
+                        <div class="mt-2">
+                          <span class="badge bg-primary small">Click for details</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-3">
+              <a routerLink="/info" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-search me-2"></i>View All Healthcare Professionals
+              </a>
+            </div>
+          </div>
+
+          <!-- Debug Information (remove in production) -->
+          <div class="debug-section mb-4" *ngIf="recommendedDoctors && recommendedDoctors.length === 0">
+            <div class="alert alert-warning">
+              <h6>Debug Information:</h6>
+              <p><strong>Risk Level:</strong> {{latestAssessment?.aiAnalysis?.riskLevel || 'Not detected'}}</p>
+              <p><strong>Assessment Available:</strong> {{latestAssessment ? 'Yes' : 'No'}}</p>
+              <p><strong>AI Analysis Available:</strong> {{latestAssessment ? 'Yes' : 'No'}}</p>
+              <p><strong>Recommended Doctors Count:</strong> {{recommendedDoctors.length || 0}}</p>
+            </div>
+          </div>
+
+          <!-- Your Answers Summary -->
+          <div class="answers-summary" [@fadeInUp]>
+            <div class="d-flex align-items-center mb-3">
+              <div class="icon-circle-sm bg-secondary text-white me-3">
+                <i class="fas fa-clipboard-list"></i>
+              </div>
+              <h6 class="text-primary mb-0 fw-bold">Your Responses</h6>
+            </div>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="response-item">
+                  <div class="response-label">Mood</div>
+                  <div class="response-value">{{latestAssessment.answers.mood}}</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="response-item">
+                  <div class="response-label">Stress Level</div>
+                  <div class="response-value">{{latestAssessment.answers.stressLevel}}/10</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="response-item">
+                  <div class="response-label">Mood Level</div>
+                  <div class="response-value">{{latestAssessment.answers.moodLevel}}/10</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="response-item">
+                  <div class="response-label">Sleep Hours</div>
+                  <div class="response-value">{{latestAssessment.answers.sleepHours}}h</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="response-item">
+                  <div class="response-label">Anxiety</div>
+                  <div class="response-value">{{latestAssessment.answers.anxietyFrequency}}</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="response-item">
+                  <div class="response-label">Overwhelmed</div>
+                  <div class="response-value">{{latestAssessment.answers.overwhelmedFrequency}}</div>
+                </div>
+              </div>
+              <div class="col-md-6" *ngIf="latestAssessment.answers.wantsSummary">
+                <div class="response-item">
+                  <div class="response-label">Today's Summary</div>
+                  <div class="response-value">{{latestAssessment.answers.todaySummary || 'Not provided'}}</div>
+                </div>
+              </div>
+              <div class="col-md-6" *ngIf="latestAssessment.answers.wantsInstagramAnalysis">
+                <div class="response-item">
+                  <div class="response-label">Instagram Analysis</div>
+                  <div class="response-value">{{latestAssessment.answers.instagramAnalysis || 'Not provided'}}</div>
+                </div>
+              </div>
+              <div class="col-md-6" *ngIf="latestAssessment.answers.commonFeeling">
+                <div class="response-item">
+                  <div class="response-label">Common Feeling</div>
+                  <div class="response-value">{{latestAssessment.answers.commonFeeling}}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer bg-light border-0 p-4">
+          <div class="d-flex justify-content-center gap-3">
+            <button class="btn btn-info btn-lg px-4 hover-glow" (click)="startDailySummary()">
+              <i class="fas fa-pen me-2"></i>Write Daily Summary
+            </button>
+            <button class="btn btn-primary btn-lg px-4 hover-glow" (click)="startNewAssessment()">
+              <i class="fas fa-redo me-2"></i>Take New Assessment
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Previous Assessment Display -->
+      <div class="card hover-lift mt-4" *ngIf="latestAssessment && !showResults && !showDailySummary" [@slideInOut]>
+        <div class="card-header bg-light">
+          <div class="d-flex align-items-center">
+            <div class="icon-circle-sm bg-primary text-white me-3">
+              <i class="fas fa-history"></i>
+            </div>
+            <div>
+              <h6 class="mb-0 fw-bold">Your Latest Assessment</h6>
+              <small class="text-muted">{{latestAssessment.createdAt | date:'medium'}}</small>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-4">
+          <div class="row align-items-center">
+            <div class="col-md-8">
+              <p class="mb-2 fw-medium">
+                <strong>Summary:</strong> {{latestAssessment?.aiAnalysis?.summary || 'No summary available'}}
+              </p>
+              <p class="mb-0">
+                <strong>Risk Level:</strong> 
+                <span class="badge" [ngClass]="{
+                  'bg-success': latestAssessment?.aiAnalysis?.riskLevel === 'Low',
+                  'bg-warning': latestAssessment?.aiAnalysis?.riskLevel === 'Medium',
+                  'bg-danger': latestAssessment?.aiAnalysis?.riskLevel === 'High'
+                }">
+                  {{latestAssessment?.aiAnalysis?.riskLevel || 'Unknown'}}
+                </span>
+              </p>
+            </div>
+            <div class="col-md-4 text-end">
+              <button class="btn btn-outline-primary hover-glow" (click)="showResults = true">
+                <i class="fas fa-eye me-2"></i>View Full Results
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,51 @@
+<nav class="navbar navbar-expand-lg glass-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="javascript:void(0)">
+      <div class="brand-container">
+        <div class="brand-icon">
+          <i class="fas fa-heart-pulse"></i>
+        </div>
+        <span class="brand-text">HealthCare+</span>
+      </div>
+    </a>
+    
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="javascript:void(0)" (click)="goHome()">
+            <i class="fas fa-home me-1"></i>Home
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="javascript:void(0)" (click)="goProfile()">
+            <i class="fas fa-user me-1"></i>Profile
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="javascript:void(0)" (click)="goAnalytics()">
+            <i class="fas fa-chart-line me-1"></i>Analytics
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="javascript:void(0)" (click)="goInfo()">
+            <i class="fas fa-info-circle me-1"></i>Info
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active" href="javascript:void(0)" (click)="goCalendar()">
+            <i class="fas fa-calendar-alt me-1"></i>Calendar
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link logout-link" href="javascript:void(0)" (click)="logout()">
+            <i class="fas fa-sign-out-alt me-1"></i>Logout
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>

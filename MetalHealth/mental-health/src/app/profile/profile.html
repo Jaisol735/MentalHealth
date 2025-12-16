@@ -1,0 +1,467 @@
+<app-navbar></app-navbar>
+<div class="profile-container" *ngIf="user; else noUser">
+  <div class="container py-5">
+    <!-- Profile Header -->
+    <div class="profile-header mb-5">
+      <div class="row align-items-center">
+        <div class="col-12 col-md-8">
+          <div class="profile-info">
+            <div class="profile-avatar">
+              <div class="avatar-circle">
+                <i class="fas fa-user"></i>
+              </div>
+              <div class="avatar-status online"></div>
+            </div>
+            <div class="profile-details">
+              <h1 class="profile-name">{{ user.name }}</h1>
+              <p class="profile-email">{{ user.email }}</p>
+              <div class="profile-badges">
+                <span class="badge badge-primary">
+                  <i class="fas fa-check-circle me-1"></i>Verified
+                </span>
+                <span class="badge badge-success">
+                  <i class="fas fa-star me-1"></i>Premium Member
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4 text-md-end">
+          <button class="btn btn-outline-primary btn-lg" (click)="editProfile()">
+            <i class="fas fa-edit me-2"></i>Edit Profile
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Content -->
+    <div class="row g-4">
+      <!-- Personal Information -->
+      <div class="col-12 col-lg-8">
+        <div class="profile-card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i class="fas fa-user-circle me-2"></i>Personal Information
+            </h3>
+            <button class="btn btn-sm btn-outline-primary" (click)="editProfile()">
+              <i class="fas fa-edit me-1"></i>Edit
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="row g-4">
+              <div class="col-12 col-md-6">
+                <div class="info-item">
+                  <div class="info-label">
+                    <i class="fas fa-user me-2"></i>Full Name
+                  </div>
+                  <div class="info-value">{{ user.name }}</div>
+                </div>
+              </div>
+              <div class="col-12 col-md-6">
+                <div class="info-item">
+                  <div class="info-label">
+                    <i class="fas fa-envelope me-2"></i>Email Address
+                  </div>
+                  <div class="info-value">{{ user.email }}</div>
+                </div>
+              </div>
+              <div class="col-12 col-md-6">
+                <div class="info-item">
+                  <div class="info-label">
+                    <i class="fas fa-phone me-2"></i>Phone Number
+                  </div>
+                  <div class="info-value">{{ user.phoneno || 'Not provided' }}</div>
+                </div>
+              </div>
+              <div class="col-12 col-md-6">
+                <div class="info-item">
+                  <div class="info-label">
+                    <i class="fas fa-birthday-cake me-2"></i>Age
+                  </div>
+                  <div class="info-value">{{ user.age || 'Not provided' }}</div>
+                </div>
+              </div>
+              <div class="col-12 col-md-6">
+                <div class="info-item">
+                  <div class="info-label">
+                    <i class="fas fa-venus-mars me-2"></i>Gender
+                  </div>
+                  <div class="info-value">{{ user.gender || 'Not provided' }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Health Statistics -->
+        <div class="profile-card mt-4">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i class="fas fa-chart-line me-2"></i>Health Statistics
+            </h3>
+            <button class="btn btn-sm btn-outline-primary" (click)="loadAssessmentData()" [disabled]="loading">
+              <i class="fas fa-sync-alt me-1" [class.fa-spin]="loading"></i>
+              {{ loading ? 'Loading...' : 'Refresh' }}
+            </button>
+          </div>
+          <div class="card-body">
+            <!-- Error State -->
+            <div *ngIf="error" class="alert alert-warning" role="alert">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              {{ error }}
+              <button class="btn btn-sm btn-outline-warning ms-2" (click)="loadAssessmentData()">
+                <i class="fas fa-retry me-1"></i>Retry
+              </button>
+            </div>
+            
+            <!-- Loading State -->
+            <div *ngIf="loading && !error" class="text-center py-4">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2 text-muted">Loading health statistics...</p>
+            </div>
+            
+            <!-- Statistics Content -->
+            <div *ngIf="!loading" class="row g-4">
+              <div class="col-12 col-md-4">
+                <div class="stat-card">
+                  <div class="stat-icon bg-primary">
+                    <i class="fas fa-heart-pulse"></i>
+                  </div>
+                  <div class="stat-content">
+                    <div class="stat-number">{{ getAssessmentCount() }}</div>
+                    <div class="stat-label">Assessments</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="stat-card">
+                  <div class="stat-icon bg-success">
+                    <i class="fas fa-calendar-check"></i>
+                  </div>
+                  <div class="stat-content">
+                    <div class="stat-number">{{ getDaysActive() }}</div>
+                    <div class="stat-label">Days Active</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="stat-card">
+                  <div class="stat-icon bg-warning">
+                    <i class="fas fa-trophy"></i>
+                  </div>
+                  <div class="stat-content">
+                    <div class="stat-number">{{ getStreakDays() }}</div>
+                    <div class="stat-label">Day Streak</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="col-12 col-lg-4">
+        <!-- Quick Actions -->
+        <div class="profile-card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i class="fas fa-bolt me-2"></i>Quick Actions
+            </h3>
+          </div>
+          <div class="card-body">
+            <div class="action-list">
+              <button class="action-item" (click)="takeAssessment()">
+                <div class="action-icon bg-primary">
+                  <i class="fas fa-clipboard-list"></i>
+                </div>
+                <div class="action-content">
+                  <div class="action-title">Take Assessment</div>
+                  <div class="action-subtitle">Complete a mental health check</div>
+                </div>
+                <i class="fas fa-chevron-right action-arrow"></i>
+              </button>
+              
+              <button class="action-item" (click)="viewCalendar()">
+                <div class="action-icon bg-success">
+                  <i class="fas fa-calendar-alt"></i>
+                </div>
+                <div class="action-content">
+                  <div class="action-title">View Calendar</div>
+                  <div class="action-subtitle">Track your mood history</div>
+                </div>
+                <i class="fas fa-chevron-right action-arrow"></i>
+              </button>
+              
+              <button class="action-item" (click)="viewHistory()">
+                <div class="action-icon bg-info">
+                  <i class="fas fa-history"></i>
+                </div>
+                <div class="action-content">
+                  <div class="action-title">View History</div>
+                  <div class="action-subtitle">See past assessments</div>
+                </div>
+                <i class="fas fa-chevron-right action-arrow"></i>
+              </button>
+              
+              <button class="action-item" (click)="viewAnalytics()">
+                <div class="action-icon bg-purple">
+                  <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="action-content">
+                  <div class="action-title">Health Analytics</div>
+                  <div class="action-subtitle">Weekly & monthly trends</div>
+                </div>
+                <i class="fas fa-chevron-right action-arrow"></i>
+              </button>
+              
+              <button class="action-item" (click)="downloadReport()">
+                <div class="action-icon bg-warning">
+                  <i class="fas fa-download"></i>
+                </div>
+                <div class="action-content">
+                  <div class="action-title">Download Report</div>
+                  <div class="action-subtitle">Export your data</div>
+                </div>
+                <i class="fas fa-chevron-right action-arrow"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="profile-card mt-4">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i class="fas fa-clock me-2"></i>Recent Activity
+            </h3>
+          </div>
+          <div class="card-body">
+            <!-- Loading State for Activity -->
+            <div *ngIf="loading" class="text-center py-3">
+              <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2 text-muted small">Loading recent activity...</p>
+            </div>
+            
+            <!-- Activity Content -->
+            <div *ngIf="!loading" class="activity-list">
+              <div class="activity-item" *ngFor="let activity of getRecentActivity()">
+                <div class="activity-icon" [ngClass]="'bg-' + activity.type">
+                  <i [class]="activity.icon"></i>
+                </div>
+                <div class="activity-content">
+                  <div class="activity-title">{{ activity.title }}</div>
+                  <div class="activity-time">{{ activity.time }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true" [class.show]="showEditModal" [style.display]="showEditModal ? 'block' : 'none'">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header gradient-primary text-white">
+        <h5 class="modal-title fw-bold" id="editProfileModalLabel">
+          <i class="fas fa-user-edit me-2"></i>Edit Profile
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="closeEditModal()" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <form [ngFormOptions]="{updateOn: 'blur'}" #editProfileForm="ngForm">
+          <!-- Error Alert -->
+          <div *ngIf="editError" class="alert alert-danger" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>{{ editError }}
+          </div>
+          
+          <!-- Success Alert -->
+          <div *ngIf="editSuccess" class="alert alert-success" role="alert">
+            <i class="fas fa-check-circle me-2"></i>{{ editSuccess }}
+          </div>
+
+          <div class="row g-3">
+            <!-- Name Field -->
+            <div class="col-12 col-md-6">
+              <label for="editName" class="form-label fw-semibold">
+                <i class="fas fa-user me-2 text-primary"></i>Full Name *
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                id="editName"
+                name="name"
+                [(ngModel)]="editFormData.name"
+                required
+                minlength="2"
+                maxlength="100"
+                #nameInput="ngModel"
+                [class.is-invalid]="nameInput.invalid && nameInput.touched"
+                [class.is-valid]="nameInput.valid && nameInput.touched"
+              />
+              <div class="invalid-feedback" *ngIf="nameInput.invalid && nameInput.touched">
+                <span *ngIf="nameInput.errors?.['required']">Name is required</span>
+                <span *ngIf="nameInput.errors?.['minlength']">Name must be at least 2 characters</span>
+              </div>
+            </div>
+
+            <!-- Email Field -->
+            <div class="col-12 col-md-6">
+              <label for="editEmail" class="form-label fw-semibold">
+                <i class="fas fa-envelope me-2 text-primary"></i>Email Address *
+              </label>
+              <input
+                type="email"
+                class="form-control"
+                id="editEmail"
+                name="email"
+                [(ngModel)]="editFormData.email"
+                required
+                email
+                #emailInput="ngModel"
+                [class.is-invalid]="emailInput.invalid && emailInput.touched"
+                [class.is-valid]="emailInput.valid && emailInput.touched"
+              />
+              <div class="invalid-feedback" *ngIf="emailInput.invalid && emailInput.touched">
+                <span *ngIf="emailInput.errors?.['required']">Email is required</span>
+                <span *ngIf="emailInput.errors?.['email']">Please enter a valid email address</span>
+              </div>
+            </div>
+
+            <!-- Phone Number Field -->
+            <div class="col-12 col-md-6">
+              <label for="editPhoneno" class="form-label fw-semibold">
+                <i class="fas fa-phone me-2 text-primary"></i>Phone Number *
+              </label>
+              <input
+                type="tel"
+                class="form-control"
+                id="editPhoneno"
+                name="phoneno"
+                [(ngModel)]="editFormData.phoneno"
+                required
+                pattern="[0-9+\-() ]{10,15}"
+                maxlength="15"
+                #phonenoInput="ngModel"
+                [class.is-invalid]="phonenoInput.invalid && phonenoInput.touched"
+                [class.is-valid]="phonenoInput.valid && phonenoInput.touched"
+              />
+              <div class="invalid-feedback" *ngIf="phonenoInput.invalid && phonenoInput.touched">
+                <span *ngIf="phonenoInput.errors?.['required']">Phone number is required</span>
+                <span *ngIf="phonenoInput.errors?.['pattern']">Please enter a valid phone number (10-15 digits)</span>
+              </div>
+            </div>
+
+            <!-- Age Field -->
+            <div class="col-12 col-md-6">
+              <label for="editAge" class="form-label fw-semibold">
+                <i class="fas fa-birthday-cake me-2 text-primary"></i>Age *
+              </label>
+              <input
+                type="number"
+                class="form-control"
+                id="editAge"
+                name="age"
+                [(ngModel)]="editFormData.age"
+                required
+                min="1"
+                max="120"
+                #ageInput="ngModel"
+                [class.is-invalid]="ageInput.invalid && ageInput.touched"
+                [class.is-valid]="ageInput.valid && ageInput.touched"
+              />
+              <div class="invalid-feedback" *ngIf="ageInput.invalid && ageInput.touched">
+                <span *ngIf="ageInput.errors?.['required']">Age is required</span>
+                <span *ngIf="ageInput.errors?.['min']">Age must be greater than 0</span>
+                <span *ngIf="ageInput.errors?.['max']">Please enter a valid age</span>
+              </div>
+            </div>
+
+            <!-- Gender Field -->
+            <div class="col-12">
+              <label for="editGender" class="form-label fw-semibold">
+                <i class="fas fa-venus-mars me-2 text-primary"></i>Gender *
+              </label>
+              <select
+                class="form-select"
+                id="editGender"
+                name="gender"
+                [(ngModel)]="editFormData.gender"
+                required
+                #genderInput="ngModel"
+                [class.is-invalid]="genderInput.invalid && genderInput.touched"
+                [class.is-valid]="genderInput.valid && genderInput.touched"
+              >
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
+              <div class="invalid-feedback" *ngIf="genderInput.invalid && genderInput.touched">
+                Gender is required
+              </div>
+            </div>
+          </div>
+
+          <!-- Non-editable fields info -->
+          <div class="alert alert-info mt-3 mb-0" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Note:</strong> Password and account creation date cannot be changed. Contact support if you need to update your password.
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-outline-secondary" (click)="closeEditModal()" [disabled]="isSaving">
+          Cancel
+        </button>
+        <button 
+          type="button" 
+          class="btn btn-primary" 
+          (click)="saveProfile()" 
+          [disabled]="!editProfileForm.valid || isSaving"
+        >
+          <span *ngIf="isSaving">
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            Saving...
+          </span>
+          <span *ngIf="!isSaving">
+            <i class="fas fa-save me-2"></i>Save Changes
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Backdrop -->
+<div class="modal-backdrop fade" [class.show]="showEditModal" [style.display]="showEditModal ? 'block' : 'none'" (click)="closeEditModal()"></div>
+
+<ng-template #noUser>
+  <div class="no-user-container">
+    <div class="container py-5">
+      <div class="row justify-content-center">
+        <div class="col-12 col-md-6 text-center">
+          <div class="no-user-icon">
+            <i class="fas fa-user-slash"></i>
+          </div>
+          <h2 class="no-user-title">No User Data Available</h2>
+          <p class="no-user-description">
+            We couldn't find any user data. Please make sure you're logged in correctly.
+          </p>
+          <button class="btn btn-primary btn-lg" (click)="goToLogin()">
+            <i class="fas fa-sign-in-alt me-2"></i>Go to Login
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-template>

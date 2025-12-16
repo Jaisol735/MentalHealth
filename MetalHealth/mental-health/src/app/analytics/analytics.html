@@ -1,0 +1,408 @@
+<div class="analytics-container">
+  <app-navbar></app-navbar>
+  
+  <div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h1 class="display-6 fw-bold gradient-text mb-2">
+              <i class="fas fa-chart-line me-3"></i>Health Analytics
+            </h1>
+            <p class="lead text-muted mb-0">Track your mental health trends and patterns</p>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" (click)="goToHistory()">
+              <i class="fas fa-history me-2"></i>History
+            </button>
+            <button class="btn btn-outline-success" (click)="goToCalendar()">
+              <i class="fas fa-calendar me-2"></i>Calendar
+            </button>
+            <button class="btn btn-primary" (click)="downloadReport()">
+              <i class="fas fa-download me-2"></i>Download Report
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <ul class="nav nav-pills nav-fill" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button 
+              class="nav-link" 
+              [class.active]="activeTab === 'weekly'"
+              (click)="switchToWeekly()"
+              type="button">
+              <i class="fas fa-calendar-week me-2"></i>Weekly View
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button 
+              class="nav-link" 
+              [class.active]="activeTab === 'monthly'"
+              (click)="switchToMonthly()"
+              type="button">
+              <i class="fas fa-calendar-alt me-2"></i>Monthly View
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Date Selection -->
+    <div class="row mb-4" *ngIf="!loading">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col-md-6" *ngIf="activeTab === 'weekly'">
+                <label class="form-label fw-bold">Select Week:</label>
+                <input 
+                  type="date" 
+                  class="form-control" 
+                  [(ngModel)]="selectedWeekStart"
+                  (change)="onWeekStartChange()"
+                  [value]="selectedWeekStart || getCurrentWeekStart()">
+              </div>
+              <div class="col-md-6" *ngIf="activeTab === 'monthly'">
+                <label class="form-label fw-bold">Select Month & Year:</label>
+                <div class="row">
+                  <div class="col-6">
+                    <select class="form-select" [(ngModel)]="selectedMonth" (change)="onMonthYearChange()">
+                      <option *ngFor="let month of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="month">
+                        {{getMonthName(month)}}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <input 
+                      type="number" 
+                      class="form-control" 
+                      [(ngModel)]="selectedYear"
+                      (change)="onMonthYearChange()"
+                      min="2020" 
+                      max="2030">
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="text-end">
+                  <button class="btn btn-outline-secondary" (click)="goToHome()">
+                    <i class="fas fa-home me-2"></i>Take Assessment
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div class="row" *ngIf="loading">
+      <div class="col-12">
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-3 text-muted">Analyzing your health data...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div class="row" *ngIf="error && !loading">
+      <div class="col-12">
+        <div class="alert alert-danger" role="alert">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          {{ error }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Analytics Content -->
+    <div class="row" *ngIf="!loading && !error">
+      <!-- Weekly Analytics -->
+      <div class="col-12" *ngIf="activeTab === 'weekly' && weeklyData">
+        <!-- Summary Card -->
+        <div class="card mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-chart-bar me-2"></i>
+              Weekly Summary ({{ weeklyData.weekStart }} to {{ weeklyData.weekEnd }})
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-8">
+                <p class="card-text">{{ weeklyData.analytics.summary }}</p>
+              </div>
+              <div class="col-md-4">
+                <div class="text-end">
+                  <span [class]="getRiskLevelClass(weeklyData.analytics.riskLevel)">
+                    {{ weeklyData.analytics.riskLevel }} Risk
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trends Row -->
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-trending-up me-2"></i>Trends Analysis
+                </h6>
+              </div>
+              <div class="card-body">
+                <p class="card-text">{{ weeklyData.analytics.trends }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-lightbulb me-2"></i>Key Insights
+                </h6>
+              </div>
+              <div class="card-body">
+                <p class="card-text">{{ weeklyData.analytics.insights }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trend Indicators -->
+        <div class="row mb-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-chart-line me-2"></i>Trend Indicators
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="d-flex align-items-center">
+                      <i [class]="getTrendIcon(weeklyData.analytics.moodTrend)" class="me-2"></i>
+                      <div>
+                        <div class="fw-bold">Mood</div>
+                        <small [class]="getTrendColor(weeklyData.analytics.moodTrend)">
+                          {{ weeklyData.analytics.moodTrend }}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="d-flex align-items-center">
+                      <i [class]="getTrendIcon(weeklyData.analytics.stressTrend)" class="me-2"></i>
+                      <div>
+                        <div class="fw-bold">Stress</div>
+                        <small [class]="getTrendColor(weeklyData.analytics.stressTrend)">
+                          {{ weeklyData.analytics.stressTrend }}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="d-flex align-items-center">
+                      <i [class]="getTrendIcon(weeklyData.analytics.sleepTrend)" class="me-2"></i>
+                      <div>
+                        <div class="fw-bold">Sleep</div>
+                        <small [class]="getTrendColor(weeklyData.analytics.sleepTrend)">
+                          {{ weeklyData.analytics.sleepTrend }}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="d-flex align-items-center">
+                      <i [class]="getTrendIcon(weeklyData.analytics.energyTrend)" class="me-2"></i>
+                      <div>
+                        <div class="fw-bold">Energy</div>
+                        <small [class]="getTrendColor(weeklyData.analytics.energyTrend)">
+                          {{ weeklyData.analytics.energyTrend }}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h6 class="card-title mb-0">
+              <i class="fas fa-clipboard-list me-2"></i>Recommendations
+            </h6>
+          </div>
+          <div class="card-body">
+            <ul class="list-unstyled mb-0">
+              <li *ngFor="let rec of getRecommendationsAsArray(weeklyData.analytics.recommendations)" class="mb-2">
+                <i class="fas fa-check-circle text-success me-2"></i>
+                {{ rec }}
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monthly Analytics -->
+      <div class="col-12" *ngIf="activeTab === 'monthly' && monthlyData">
+        <!-- Summary Card -->
+        <div class="card mb-4">
+          <div class="card-header bg-success text-white">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-chart-bar me-2"></i>
+              Monthly Summary - {{ getMonthName(monthlyData.month) }} {{ monthlyData.year }}
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-8">
+                <p class="card-text">{{ monthlyData.analytics.summary }}</p>
+              </div>
+              <div class="col-md-4">
+                <div class="text-end">
+                  <span [class]="getRiskLevelClass(monthlyData.analytics.riskLevel)">
+                    {{ monthlyData.analytics.riskLevel }} Risk
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trends Row -->
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-trending-up me-2"></i>Monthly Trends
+                </h6>
+              </div>
+              <div class="card-body">
+                <p class="card-text">{{ monthlyData.analytics.trends }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-lightbulb me-2"></i>Key Insights
+                </h6>
+              </div>
+              <div class="card-body">
+                <p class="card-text">{{ monthlyData.analytics.insights }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trend Indicators -->
+        <div class="row mb-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-chart-line me-2"></i>Monthly Trend Indicators
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="d-flex align-items-center">
+                      <i [class]="getTrendIcon(monthlyData.analytics.moodTrend)" class="me-2"></i>
+                      <div>
+                        <div class="fw-bold">Mood</div>
+                        <small [class]="getTrendColor(monthlyData.analytics.moodTrend)">
+                          {{ monthlyData.analytics.moodTrend }}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="d-flex align-items-center">
+                      <i [class]="getTrendIcon(monthlyData.analytics.stressTrend)" class="me-2"></i>
+                      <div>
+                        <div class="fw-bold">Stress</div>
+                        <small [class]="getTrendColor(monthlyData.analytics.stressTrend)">
+                          {{ monthlyData.analytics.stressTrend }}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="d-flex align-items-center">
+                      <i [class]="getTrendIcon(monthlyData.analytics.sleepTrend)" class="me-2"></i>
+                      <div>
+                        <div class="fw-bold">Sleep</div>
+                        <small [class]="getTrendColor(monthlyData.analytics.sleepTrend)">
+                          {{ monthlyData.analytics.sleepTrend }}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="d-flex align-items-center">
+                      <i [class]="getTrendIcon(monthlyData.analytics.energyTrend)" class="me-2"></i>
+                      <div>
+                        <div class="fw-bold">Energy</div>
+                        <small [class]="getTrendColor(monthlyData.analytics.energyTrend)">
+                          {{ monthlyData.analytics.energyTrend }}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h6 class="card-title mb-0">
+              <i class="fas fa-clipboard-list me-2"></i>Monthly Recommendations
+            </h6>
+          </div>
+          <div class="card-body">
+            <ul class="list-unstyled mb-0">
+              <li *ngFor="let rec of getRecommendationsAsArray(monthlyData.analytics.recommendations)" class="mb-2">
+                <i class="fas fa-check-circle text-success me-2"></i>
+                {{ rec }}
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- No Data State -->
+      <div class="col-12" *ngIf="(activeTab === 'weekly' && !weeklyData) || (activeTab === 'monthly' && !monthlyData)">
+        <div class="text-center py-5">
+          <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+          <h4 class="text-muted">No Data Available</h4>
+          <p class="text-muted">Start taking daily assessments to see your health analytics.</p>
+          <button class="btn btn-primary" (click)="goToHome()">
+            <i class="fas fa-plus me-2"></i>Take Assessment
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

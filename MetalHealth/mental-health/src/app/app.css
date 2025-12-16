@@ -1,0 +1,27 @@
+.app-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+  }
+
+/* Override for landing page */
+app-landing .app-container {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+app-landing .container {
+  padding: 0 !important;
+  max-width: none !important;
+}
+
+/* Alternative approach - target the landing component directly */
+:host-context(app-landing) .app-container {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+:host-context(app-landing) .container {
+  padding: 0 !important;
+  max-width: none !important;
+}
+  

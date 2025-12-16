@@ -1,0 +1,180 @@
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center mb-3">
+            <button class="btn btn-link p-0 me-2" (click)="navigateToLanding()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back
+            </button>
+          </div>
+          <h1 class="h3 mb-1">Create Account</h1>
+          <p class="text-secondary mb-4">Join HealthCare+ today</p>
+
+          <form [formGroup]="signupForm" (ngSubmit)="onSubmit()">
+            <div class="row g-3">
+              <div class="col-12 col-md-8">
+                <label for="name" class="form-label">Full Name</label>
+                <input
+                  type="text"
+                  id="name"
+                  formControlName="name"
+                  class="form-control"
+                  [class.is-invalid]="name?.invalid && name?.touched"
+                  placeholder="Enter your full name"
+                />
+                <div class="invalid-feedback" *ngIf="name?.invalid && name?.touched">
+                  <span *ngIf="name?.errors?.['required']">Name is required</span>
+                  <span *ngIf="name?.errors?.['minlength']">Name must be at least 2 characters</span>
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <label for="age" class="form-label">Age</label>
+                <input
+                  type="number"
+                  id="age"
+                  formControlName="age"
+                  class="form-control"
+                  [class.is-invalid]="age?.invalid && age?.touched"
+                  placeholder="Age"
+                  min="1"
+                  max="120"
+                />
+                <div class="invalid-feedback" *ngIf="age?.invalid && age?.touched">
+                  <span *ngIf="age?.errors?.['required']">Age is required</span>
+                  <span *ngIf="age?.errors?.['min']">Age must be greater than 0</span>
+                  <span *ngIf="age?.errors?.['max']">Age must be less than 120</span>
+                </div>
+              </div>
+
+              <div class="col-12 col-md-4">
+                <label for="gender" class="form-label">Gender</label>
+                <select
+                  id="gender"
+                  formControlName="gender"
+                  class="form-control"
+                  [class.is-invalid]="gender?.invalid && gender?.touched"
+                >
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Non-binary">Non-binary</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                  <option value="Other">Other</option>
+                </select>
+                <div class="invalid-feedback" *ngIf="gender?.invalid && gender?.touched">
+                  <span *ngIf="gender?.errors?.['required']">Gender is required</span>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <label for="email" class="form-label">Email Address</label>
+                <input
+                  type="email"
+                  id="email"
+                  formControlName="email"
+                  class="form-control"
+                  [class.is-invalid]="email?.invalid && email?.touched"
+                  placeholder="Enter your email"
+                />
+                <div class="invalid-feedback" *ngIf="email?.invalid && email?.touched">
+                  <span *ngIf="email?.errors?.['required']">Email is required</span>
+                  <span *ngIf="email?.errors?.['email']">Please enter a valid email</span>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <label for="phoneno" class="form-label">Phone Number</label>
+                <input
+                  type="tel"
+                  id="phoneno"
+                  formControlName="phoneno"
+                  class="form-control"
+                  [class.is-invalid]="phoneno?.invalid && phoneno?.touched"
+                  placeholder="Enter your phone number"
+                />
+                <div class="invalid-feedback" *ngIf="phoneno?.invalid && phoneno?.touched">
+                  <span *ngIf="phoneno?.errors?.['required']">Phone number is required</span>
+                  <span *ngIf="phoneno?.errors?.['pattern']">Please enter a valid phone number (10-15 digits)</span>
+                </div>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label for="password" class="form-label">Password</label>
+                <input
+                  type="password"
+                  id="password"
+                  formControlName="password"
+                  class="form-control"
+                  [class.is-invalid]="password?.invalid && password?.touched"
+                  placeholder="Create password"
+                />
+                <div class="invalid-feedback" *ngIf="password?.invalid && password?.touched">
+                  <span *ngIf="password?.errors?.['required']">Password is required</span>
+                  <span *ngIf="password?.errors?.['minlength']">Password must be at least 6 characters</span>
+                </div>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label for="confirmPassword" class="form-label">Confirm Password</label>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  formControlName="confirmPassword"
+                  class="form-control"
+                  [class.is-invalid]="confirmPassword?.invalid && confirmPassword?.touched"
+                  placeholder="Confirm password"
+                />
+                <div class="invalid-feedback" *ngIf="confirmPassword?.invalid && confirmPassword?.touched">
+                  <span *ngIf="confirmPassword?.errors?.['required']">Please confirm your password</span>
+                  <span *ngIf="confirmPassword?.errors?.['passwordMismatch']">Passwords do not match</span>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <label for="instagram_token" class="form-label">Instagram Token <span class="text-secondary">(Optional)</span></label>
+                <input
+                  type="text"
+                  id="instagram_token"
+                  formControlName="instagram_token"
+                  class="form-control"
+                  placeholder="Enter Instagram token (optional)"
+                />
+              </div>
+            </div>
+
+            <div class="text-danger mt-3" *ngIf="errorMessage">
+              {{ errorMessage }}
+            </div>
+
+            <div class="mt-4">
+              <button
+                type="submit"
+                class="btn btn-primary w-100"
+                [disabled]="isLoading"
+                [class.disabled]="isLoading"
+              >
+                <span *ngIf="!isLoading">Create Account</span>
+                <span *ngIf="isLoading" class="d-inline-flex align-items-center gap-2">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12a9 9 0 0 1-6.219-8.56"/>
+                  </svg>
+                  Creating Account...
+                </span>
+              </button>
+            </div>
+          </form>
+
+          <div class="mt-4 text-center">
+            <p class="mb-0">Already have an account? 
+              <button class="btn btn-link p-0" (click)="navigateToLogin()">Sign in here</button>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

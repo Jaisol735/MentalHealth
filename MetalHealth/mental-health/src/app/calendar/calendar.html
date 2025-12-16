@@ -1,0 +1,748 @@
+<app-navbar></app-navbar>
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <!-- Calendar Header -->
+      <div class="calendar-header mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <button class="btn btn-outline-primary btn-lg px-4 hover-glow" (click)="prevMonth()">
+            <i class="fas fa-chevron-left me-2"></i>Previous
+          </button>
+          <div class="text-center">
+            <h2 class="display-6 fw-bold gradient-text mb-1">{{ monthName }}</h2>
+            <p class="text-muted mb-0">Track your mental health journey</p>
+          </div>
+          <button class="btn btn-outline-primary btn-lg px-4 hover-glow" (click)="nextMonth()">
+            Next<i class="fas fa-chevron-right ms-2"></i>
+          </button>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-center gap-3 mb-4 flex-wrap">
+          <button class="btn btn-info hover-glow" (click)="viewAssessmentHistory()">
+            <i class="fas fa-history me-2"></i>View Assessment History
+          </button>
+          <button class="btn btn-warning hover-glow" (click)="downloadReport()">
+            <i class="fas fa-download me-2"></i>Download Report
+          </button>
+          <button class="btn btn-primary hover-glow" (click)="writeDailySummary()">
+            <i class="fas fa-pen me-2"></i>Write Daily Summary
+          </button>
+          <button class="btn btn-success hover-glow" (click)="takeNewAssessment()">
+            <i class="fas fa-plus me-2"></i>Take New Assessment
+          </button>
+          <button class="btn btn-outline-info hover-glow" (click)="showDailySummaries()" 
+                  title="View your daily summaries">
+            <i class="fas fa-book me-2"></i>View Summaries
+          </button>
+          <button class="btn btn-outline-danger hover-glow" (click)="clearAllData()" 
+                  title="Clear all mood entries and start fresh">
+            <i class="fas fa-trash me-2"></i>Clear Data
+          </button>
+        </div>
+        
+        <!-- Quick Stats -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-primary">
+                <i class="fas fa-calendar-check"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ getDaysWithMood() }}</div>
+                <div class="stat-label">Days Tracked</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-success">
+                <i class="fas fa-smile"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ getAverageMood() }}</div>
+                <div class="stat-label">Avg Mood</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-warning">
+                <i class="fas fa-chart-line"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ getStreakDays() }}</div>
+                <div class="stat-label">Day Streak</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-info">
+                <i class="fas fa-trophy"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ getBestMood() }}</div>
+                <div class="stat-label">Best Mood</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Assessments Section -->
+      <div class="recent-assessments mb-4" *ngIf="assessments.length > 0">
+        <div class="card">
+          <div class="card-header bg-light">
+            <h5 class="mb-0">
+              <i class="fas fa-brain me-2"></i>
+              Recent Assessments ({{ assessments.length }})
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6" *ngFor="let assessment of assessments.slice(0, 4)">
+                <div class="assessment-summary-card mb-3">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                      <h6 class="mb-1">{{ assessment.createdAt | date:'MMM d, y' }}</h6>
+                      <p class="text-muted small mb-1">{{ assessment.createdAt | date:'h:mm a' }}</p>
+                      <p class="mb-0 small">{{ assessment.aiAnalysis?.summary || 'No summary available' }}</p>
+                    </div>
+                    <div class="text-end">
+                      <span class="badge" [ngClass]="getRiskLevelBadgeClass(assessment.aiAnalysis?.riskLevel)">
+                        {{ assessment.aiAnalysis?.riskLevel || 'Unknown' }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="text-center mt-3" *ngIf="assessments.length > 4">
+              <button class="btn btn-outline-primary btn-sm" (click)="viewAssessmentHistory()">
+                View All {{ assessments.length }} Assessments
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="loadingAssessments" class="text-center py-4">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading assessments...</span>
+        </div>
+        <p class="mt-3 text-muted">Loading your assessment data...</p>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="assessmentError" class="alert alert-warning" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        {{ assessmentError }}
+        <button class="btn btn-sm btn-outline-warning ms-3" (click)="loadAssessments()">
+          <i class="fas fa-redo me-1"></i>Retry
+        </button>
+      </div>
+
+      <!-- Calendar Grid -->
+      <div class="calendar-container">
+        <!-- Day Headers -->
+        <div class="calendar-header-row">
+          <div class="day-header" *ngFor="let day of weekDays">
+            {{ day }}
+          </div>
+        </div>
+
+        <!-- Calendar Days -->
+        <div class="calendar-grid">
+          <ng-container *ngFor="let day of daysArray; let i = index">
+            <div class="calendar-day" 
+                 [class.empty]="day === 0"
+                 [class.today]="isToday(day)"
+                 [class.selected]="selectedDay === day"
+                 [class.has-mood]="hasMoodEntry(day)"
+                 [class.has-assessment]="hasAssessment(day)"
+                 [class.mood-excellent]="getMoodForDay(day) === 'excellent'"
+                 [class.mood-good]="getMoodForDay(day) === 'good'"
+                 [class.mood-neutral]="getMoodForDay(day) === 'neutral'"
+                 [class.mood-poor]="getMoodForDay(day) === 'poor'"
+                 [class.mood-terrible]="getMoodForDay(day) === 'terrible'"
+                 [class.future-date]="isFutureDate(day)"
+                 [class.has-summary]="hasSummary(day)"
+                 (click)="selectDay(day)"
+                 [@dayAnimation]>
+              <div class="day-number">{{ day === 0 ? '' : day }}</div>
+              <div class="future-indicator" *ngIf="day !== 0 && isFutureDate(day)">
+                <i class="fas fa-lock"></i>
+              </div>
+              <div class="mood-indicator" *ngIf="day !== 0 && hasMoodEntry(day)">
+                <i [class]="getMoodIcon(getMoodForDay(day))"></i>
+              </div>
+              <div class="assessment-indicator" *ngIf="day !== 0 && hasAssessment(day)">
+                <i class="fas fa-brain"></i>
+                <span class="assessment-count" *ngIf="getAssessmentCount(day) > 1">{{ getAssessmentCount(day) }}</span>
+              </div>
+              <div class="summary-indicator" *ngIf="day !== 0 && hasSummary(day)">
+                <i class="fas fa-book"></i>
+              </div>
+              <div class="day-dots" *ngIf="day !== 0 && hasMultipleEntries(day)">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <!-- Mood Entry Modal -->
+      <div class="modal fade" id="moodModal" tabindex="-1" aria-labelledby="moodModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content mood-modal-content">
+            <div class="modal-header gradient-primary text-white position-relative overflow-hidden">
+              <div class="header-pattern"></div>
+              <div class="position-relative">
+                <h5 class="modal-title fw-bold" id="moodModalLabel">
+                  <i class="fas fa-heart me-2"></i>How are you feeling?
+                </h5>
+                <p class="mb-0 opacity-75 small">{{ selectedDate | date:'EEEE, MMMM d, y' }}</p>
+              </div>
+              <button type="button" class="btn-close btn-close-white" (click)="closeMoodModal()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+              <div class="text-center mb-4">
+                <div class="mood-date-badge">
+                  <i class="fas fa-calendar-day me-2"></i>
+                  {{ selectedDate | date:'MMMM d, y' }}
+                </div>
+                <div class="assessment-available-badge" *ngIf="selectedDayAssessments.length > 0">
+                  <i class="fas fa-brain me-2"></i>
+                  {{ selectedDayAssessments.length }} Assessment{{ selectedDayAssessments.length > 1 ? 's' : '' }} Available
+                </div>
+              </div>
+              
+              <div class="mood-selection-section mb-4">
+                <h6 class="text-center mb-3 fw-semibold">Select your mood</h6>
+                <div class="mood-options-enhanced">
+                  <div class="mood-option-enhanced" 
+                       *ngFor="let mood of moodOptions" 
+                       [class.selected]="selectedMood === mood.value"
+                       [style.--mood-color]="mood.color"
+                       (click)="selectMood(mood.value)">
+                    <div class="mood-icon-enhanced">
+                      <i [class]="mood.icon"></i>
+                    </div>
+                    <div class="mood-label-enhanced">{{ mood.label }}</div>
+                    <div class="mood-selection-indicator" *ngIf="selectedMood === mood.value">
+                      <i class="fas fa-check-circle"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="notes-section">
+                <label class="form-label fw-semibold mb-3">
+                  <i class="fas fa-sticky-note me-2 text-primary"></i>
+                  Additional Notes (Optional)
+                </label>
+                <div class="notes-container">
+                  <textarea class="form-control notes-textarea" 
+                            [(ngModel)]="moodNotes" 
+                            placeholder="How was your day? Any specific thoughts or feelings you'd like to remember?"
+                            rows="4"></textarea>
+                  <div class="notes-footer">
+                    <small class="text-muted">
+                      <i class="fas fa-info-circle me-1"></i>
+                      Your notes are private and will help you track patterns over time
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-outline-secondary" (click)="closeMoodModal()">
+          <i class="fas fa-times me-2"></i>Cancel
+        </button>
+        <button type="button"
+                class="btn btn-success hover-glow"
+                (click)="showSummaryForDate(selectedDay)"
+                *ngIf="selectedDay && hasSummaryForSelectedDate()">
+          <i class="fas fa-book me-2"></i>View Summary
+        </button>
+        <button type="button"
+                class="btn btn-info hover-glow"
+                (click)="viewAssessmentsForDay()"
+                *ngIf="selectedDayAssessments.length > 0">
+          <i class="fas fa-brain me-2"></i>View Assessments ({{ selectedDayAssessments.length }})
+        </button>
+        <button type="button"
+                class="btn btn-primary hover-glow"
+                (click)="saveMood()"
+                [disabled]="!selectedMood">
+          <i class="fas fa-save me-2"></i>Save Mood
+        </button>
+      </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Assessment Modal -->
+      <div class="modal fade" id="assessmentModal" tabindex="-1" aria-labelledby="assessmentModalLabel" aria-hidden="true" [class.show]="showAssessmentModal" [style.display]="showAssessmentModal ? 'block' : 'none'">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content">
+            <div class="modal-header gradient-primary text-white">
+              <h5 class="modal-title fw-bold" id="assessmentModalLabel">
+                <i class="fas fa-brain me-2"></i>Assessments for {{ selectedDate | date:'MMMM d, y' }}
+              </h5>
+              <button type="button" class="btn-close btn-close-white" (click)="closeAssessmentModal()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+              <div *ngIf="selectedDayAssessments.length === 0" class="text-center py-4">
+                <i class="fas fa-calendar-times text-muted mb-3" style="font-size: 3rem;"></i>
+                <h6 class="text-muted">No assessments found for this day</h6>
+              </div>
+              
+              <div *ngFor="let assessment of selectedDayAssessments; let i = index" class="assessment-card mb-4">
+                <div class="card hover-lift">
+                  <div class="card-header gradient-success text-white position-relative overflow-hidden">
+                    <div class="header-pattern"></div>
+                    <div class="position-relative">
+                      <h5 class="mb-2 fw-bold">
+                        <i class="fas fa-check-circle me-2"></i>Assessment #{{ i + 1 }}
+                      </h5>
+                      <small class="opacity-75">{{ assessment.createdAt | date:'medium' }}</small>
+                    </div>
+                  </div>
+                  <div class="card-body p-4">
+                    <!-- AI Analysis Results -->
+                    <div class="analysis-section mb-4">
+                      <div class="d-flex align-items-center mb-3">
+                        <div class="icon-circle-sm bg-primary text-white me-3">
+                          <i class="fas fa-brain"></i>
+                        </div>
+                        <h6 class="text-primary mb-0 fw-bold">AI Analysis Summary</h6>
+                      </div>
+                      <div class="alert alert-info">
+                        <p class="mb-0 fw-medium">{{ assessment.aiAnalysis?.summary || 'No summary available' }}</p>
+                      </div>
+                    </div>
+
+                    <!-- Risk Level -->
+                    <div class="risk-section mb-4">
+                      <div class="d-flex align-items-center mb-3">
+                        <div class="icon-circle-sm bg-warning text-white me-3">
+                          <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h6 class="text-primary mb-0 fw-bold">Risk Assessment</h6>
+                      </div>
+                      <div class="alert" [ngClass]="{
+                        'alert-success': assessment.aiAnalysis?.riskLevel === 'Low',
+                        'alert-warning': assessment.aiAnalysis?.riskLevel === 'Medium',
+                        'alert-danger': assessment.aiAnalysis?.riskLevel === 'High'
+                      }">
+                        <div class="d-flex align-items-center">
+                          <i class="fas fa-exclamation-triangle me-2"></i>
+                          <strong>Risk Level: </strong>
+                          <span class="ms-2 fw-bold" [ngClass]="getRiskLevelClass(assessment.aiAnalysis?.riskLevel)">
+                            {{ assessment.aiAnalysis?.riskLevel || 'Unknown' }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Recommendations -->
+                    <div class="recommendations-section mb-4">
+                      <div class="d-flex align-items-center mb-3">
+                        <div class="icon-circle-sm bg-info text-white me-3">
+                          <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <h6 class="text-primary mb-0 fw-bold">Recommendations</h6>
+                      </div>
+                      <div class="alert alert-light">
+                        <div *ngIf="isArray(assessment.aiAnalysis?.recommendations)">
+                          <ul class="mb-0 list-unstyled">
+                            <li *ngFor="let rec of getRecommendationsAsArray(assessment.aiAnalysis?.recommendations)" 
+                                class="d-flex align-items-start mb-2">
+                              <i class="fas fa-arrow-right text-primary me-2 mt-1"></i>
+                              <span>{{ rec }}</span>
+                            </li>
+                          </ul>
+                        </div>
+                        <p *ngIf="!isArray(assessment.aiAnalysis?.recommendations)" class="mb-0 fw-medium">
+                          {{ assessment.aiAnalysis?.recommendations || 'No recommendations available' }}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <!-- Your Answers Summary -->
+                    <div class="answers-summary">
+                      <div class="d-flex align-items-center mb-3">
+                        <div class="icon-circle-sm bg-secondary text-white me-3">
+                          <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <h6 class="text-primary mb-0 fw-bold">Your Responses</h6>
+                      </div>
+                      <div class="row g-3">
+                        <div class="col-md-6">
+                          <div class="response-item">
+                            <div class="response-label">Mood</div>
+                            <div class="response-value">{{ assessment.answers.mood }}</div>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="response-item">
+                            <div class="response-label">Stress Level</div>
+                            <div class="response-value">{{ assessment.answers.stressLevel }}/10</div>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="response-item">
+                            <div class="response-label">Mood Level</div>
+                            <div class="response-value">{{ assessment.answers.moodLevel }}/10</div>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="response-item">
+                            <div class="response-label">Sleep Hours</div>
+                            <div class="response-value">{{ assessment.answers.sleepHours }}h</div>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="response-item">
+                            <div class="response-label">Anxiety</div>
+                            <div class="response-value">{{ assessment.answers.anxietyFrequency }}</div>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="response-item">
+                            <div class="response-label">Overwhelmed</div>
+                            <div class="response-value">{{ assessment.answers.overwhelmedFrequency }}</div>
+                          </div>
+                        </div>
+                        <div class="col-md-6" *ngIf="assessment.answers.wantsSummary && assessment.answers.todaySummary">
+                          <div class="response-item">
+                            <div class="response-label">Today's Summary</div>
+                            <div class="response-value">{{ assessment.answers.todaySummary }}</div>
+                          </div>
+                        </div>
+                        <div class="col-md-6" *ngIf="assessment.answers.wantsInstagramAnalysis && assessment.answers.instagramAnalysis">
+                          <div class="response-item">
+                            <div class="response-label">Instagram Analysis</div>
+                            <div class="response-value">{{ assessment.answers.instagramAnalysis }}</div>
+                          </div>
+                        </div>
+                        <div class="col-md-6" *ngIf="assessment.answers.commonFeeling">
+                          <div class="response-item">
+                            <div class="response-label">Common Feeling</div>
+                            <div class="response-value">{{ assessment.answers.commonFeeling }}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer bg-light">
+              <button type="button" class="btn btn-outline-secondary" (click)="closeAssessmentModal()">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily Summaries Modal -->
+      <div class="modal fade" id="summariesModal" tabindex="-1" aria-labelledby="summariesModalLabel" aria-hidden="true" [class.show]="showSummariesModal" [style.display]="showSummariesModal ? 'block' : 'none'">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+          <div class="modal-content">
+            <div class="modal-header gradient-primary text-white">
+              <h5 class="modal-title fw-bold" id="summariesModalLabel">
+                <i class="fas fa-book me-2"></i>Your Daily Summaries
+              </h5>
+              <button type="button" class="btn-close btn-close-white" (click)="closeSummariesModal()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+              <!-- Loading State -->
+              <div *ngIf="loadingSummaries" class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Loading summaries...</span>
+                </div>
+                <p class="mt-3 text-muted">Loading your daily summaries...</p>
+              </div>
+
+              <!-- Error State -->
+              <div *ngIf="summariesError && !loadingSummaries" class="alert alert-warning" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                {{ summariesError }}
+                <button class="btn btn-sm btn-outline-warning ms-3" (click)="loadDailySummaries()">
+                  <i class="fas fa-redo me-1"></i>Retry
+                </button>
+              </div>
+
+              <!-- No Summaries -->
+              <div *ngIf="!loadingSummaries && !summariesError && dailySummaries.length === 0" class="text-center py-5">
+                <i class="fas fa-book-open text-muted mb-3" style="font-size: 3rem;"></i>
+                <h6 class="text-muted">No Daily Summaries Yet</h6>
+                <p class="text-muted mb-4">You haven't written any daily summaries yet. Start by taking an assessment and writing your first summary!</p>
+                <div class="d-flex justify-content-center gap-3">
+                  <button class="btn btn-primary" (click)="writeDailySummary()">
+                    <i class="fas fa-pen me-2"></i>Write Your First Summary
+                  </button>
+                  <button class="btn btn-outline-secondary" (click)="createSampleSummaries()">
+                    <i class="fas fa-flask me-2"></i>Create Sample Data
+                  </button>
+                </div>
+              </div>
+
+              <!-- Summaries List -->
+              <div *ngIf="!loadingSummaries && !summariesError && dailySummaries.length > 0" class="row">
+                <div class="col-12">
+                  <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h6 class="mb-0">Your Daily Summaries ({{ dailySummaries.length }})</h6>
+                    <button class="btn btn-outline-primary btn-sm" (click)="writeDailySummary()">
+                      <i class="fas fa-plus me-1"></i>Write New Summary
+                    </button>
+                  </div>
+                  
+                  <div *ngFor="let summary of dailySummaries; let i = index" class="summary-card mb-4">
+                    <div class="card hover-lift">
+                      <div class="card-header gradient-info text-white position-relative overflow-hidden">
+                        <div class="header-pattern"></div>
+                        <div class="position-relative">
+                          <h6 class="mb-1 fw-bold">
+                            <i class="fas fa-calendar-day me-2"></i>
+                            {{ summary.date | date:'EEEE, MMMM d, y' }}
+                          </h6>
+                          <small class="opacity-75">{{ summary.timestamp | date:'h:mm a' }}</small>
+                        </div>
+                      </div>
+                      <div class="card-body p-4">
+                        <div class="summary-content mb-4">
+                          <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="fw-semibold mb-0">
+                              <i class="fas fa-file-alt me-2"></i>
+                              {{ summary.isSynthetic ? 'Daily Check-in Summary' : 'Your Summary' }}
+                              <span *ngIf="summary.isSynthetic" class="badge bg-info ms-2">Auto-generated</span>
+                            </h6>
+                            <div class="summary-actions">
+                              <button class="btn btn-sm btn-outline-primary me-2" (click)="editSummary(summary)" title="Edit summary">
+                                <i class="fas fa-edit"></i>
+                              </button>
+                              <button class="btn btn-sm btn-outline-danger" (click)="deleteSummary(summary)" title="Delete summary">
+                                <i class="fas fa-trash"></i>
+                              </button>
+                            </div>
+                          </div>
+                          <p class="mb-0" [innerHTML]="nl2br(summary.summary)"></p>
+                          <small *ngIf="summary.isSynthetic" class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            This summary was created from your assessment answers since you skipped writing a personal summary.
+                          </small>
+                        </div>
+                        
+                        <!-- AI Analysis Section -->
+                        <div *ngIf="summary.aiAnalysis" class="ai-analysis-section">
+                          <h6 class="fw-semibold mb-3 text-primary">
+                            <i class="fas fa-brain me-2"></i>AI Analysis
+                          </h6>
+                          
+                          <div class="row g-3">
+                            <div class="col-md-6" *ngIf="summary.aiAnalysis.summary">
+                              <div class="analysis-item">
+                                <div class="analysis-label">Summary</div>
+                                <div class="analysis-value">{{ summary.aiAnalysis.summary }}</div>
+                              </div>
+                            </div>
+                            
+                            <div class="col-md-6" *ngIf="summary.aiAnalysis.mood_indicators">
+                              <div class="analysis-item">
+                                <div class="analysis-label">Mood Indicators</div>
+                                <div class="analysis-value">{{ summary.aiAnalysis.mood_indicators }}</div>
+                              </div>
+                            </div>
+                            
+                            <div class="col-md-6" *ngIf="summary.aiAnalysis.patterns">
+                              <div class="analysis-item">
+                                <div class="analysis-label">Patterns</div>
+                                <div class="analysis-value">{{ summary.aiAnalysis.patterns }}</div>
+                              </div>
+                            </div>
+                            
+                            <div class="col-md-6" *ngIf="summary.aiAnalysis.insights">
+                              <div class="analysis-item">
+                                <div class="analysis-label">Insights</div>
+                                <div class="analysis-value">{{ summary.aiAnalysis.insights }}</div>
+                              </div>
+                            </div>
+                            
+                            <div class="col-12" *ngIf="summary.aiAnalysis.suggestions">
+                              <div class="analysis-item">
+                                <div class="analysis-label">Suggestions</div>
+                                <div class="analysis-value suggestions-text">{{ summary.aiAnalysis.suggestions }}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer bg-light">
+              <button type="button" class="btn btn-outline-secondary" (click)="closeSummariesModal()">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mood Legend -->
+      <div class="mood-legend mt-4">
+        <h6 class="fw-bold mb-3">Mood Legend</h6>
+        <div class="d-flex flex-wrap gap-3">
+          <div class="legend-item" *ngFor="let mood of moodOptions">
+            <div class="legend-color" [ngClass]="'mood-' + mood.value"></div>
+            <span class="legend-label">{{ mood.label }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Date Summary Modal -->
+<div class="modal fade" id="dateSummaryModal" tabindex="-1" aria-labelledby="dateSummaryModalLabel" aria-hidden="true" [class.show]="showDateSummaryModal" [style.display]="showDateSummaryModal ? 'block' : 'none'">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content">
+      <div class="modal-header gradient-success text-white">
+        <h5 class="modal-title fw-bold" id="dateSummaryModalLabel">
+          <i class="fas fa-calendar-day me-2"></i>
+          Summary for {{ selectedDateForSummary | date:'EEEE, MMMM d, y' }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="closeDateSummaryModal()" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4" *ngIf="selectedDateSummary">
+        <div class="summary-content mb-4">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="fw-semibold mb-0">
+              <i class="fas fa-file-alt me-2"></i>
+              {{ selectedDateSummary.isSynthetic ? 'Daily Check-in Summary' : 'Your Summary' }}
+              <span *ngIf="selectedDateSummary.isSynthetic" class="badge bg-info ms-2">Auto-generated</span>
+            </h6>
+            <div class="summary-actions">
+              <button class="btn btn-sm btn-outline-primary me-2" (click)="editSummary(selectedDateSummary)" title="Edit summary">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger" (click)="deleteSummary(selectedDateSummary)" title="Delete summary">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          <p class="mb-0" [innerHTML]="nl2br(selectedDateSummary.summary)"></p>
+          <small *ngIf="selectedDateSummary.isSynthetic" class="text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            This summary was created from your assessment answers since you skipped writing a personal summary.
+          </small>
+        </div>
+        
+        <!-- AI Analysis Section -->
+        <div *ngIf="selectedDateSummary.aiAnalysis" class="ai-analysis-section">
+          <h6 class="fw-semibold mb-3 text-primary">
+            <i class="fas fa-brain me-2"></i>AI Analysis
+          </h6>
+          
+          <div class="row g-3">
+            <div class="col-md-6" *ngIf="selectedDateSummary.aiAnalysis.summary">
+              <div class="analysis-item">
+                <div class="analysis-label">Summary</div>
+                <div class="analysis-value">{{ selectedDateSummary.aiAnalysis.summary }}</div>
+              </div>
+            </div>
+            
+            <div class="col-md-6" *ngIf="selectedDateSummary.aiAnalysis.mood_indicators">
+              <div class="analysis-item">
+                <div class="analysis-label">Mood Indicators</div>
+                <div class="analysis-value">{{ selectedDateSummary.aiAnalysis.mood_indicators }}</div>
+              </div>
+            </div>
+            
+            <div class="col-md-6" *ngIf="selectedDateSummary.aiAnalysis.patterns">
+              <div class="analysis-item">
+                <div class="analysis-label">Patterns</div>
+                <div class="analysis-value">{{ selectedDateSummary.aiAnalysis.patterns }}</div>
+              </div>
+            </div>
+            
+            <div class="col-md-6" *ngIf="selectedDateSummary.aiAnalysis.insights">
+              <div class="analysis-item">
+                <div class="analysis-label">Insights</div>
+                <div class="analysis-value">{{ selectedDateSummary.aiAnalysis.insights }}</div>
+              </div>
+            </div>
+            
+            <div class="col-12" *ngIf="selectedDateSummary.aiAnalysis.suggestions">
+              <div class="analysis-item">
+                <div class="analysis-label">Suggestions</div>
+                <div class="analysis-value suggestions-text">{{ selectedDateSummary.aiAnalysis.suggestions }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-outline-secondary" (click)="closeDateSummaryModal()">
+          Close
+        </button>
+        <button type="button" class="btn btn-primary" (click)="editSummary(selectedDateSummary)" *ngIf="selectedDateSummary">
+          <i class="fas fa-edit me-2"></i>Edit Summary
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Summary Modal -->
+<div class="modal fade" id="editSummaryModal" tabindex="-1" aria-labelledby="editSummaryModalLabel" aria-hidden="true" [class.show]="showEditSummaryModal" [style.display]="showEditSummaryModal ? 'block' : 'none'">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header gradient-primary text-white">
+        <h5 class="modal-title fw-bold" id="editSummaryModalLabel">
+          <i class="fas fa-edit me-2"></i>Edit Daily Summary
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="closeEditSummaryModal()" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Edit your summary:</label>
+          <textarea 
+            class="form-control" 
+            rows="8" 
+            [(ngModel)]="editSummaryText"
+            placeholder="Write about your day, thoughts, and feelings..."
+            [disabled]="isSavingEdit">
+          </textarea>
+          <div class="form-text">
+            <i class="fas fa-info-circle me-1"></i>
+            You can edit your summary at any time. Changes will be saved and AI analysis will be updated.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-outline-secondary" (click)="closeEditSummaryModal()" [disabled]="isSavingEdit">
+          <i class="fas fa-times me-2"></i>Cancel
+        </button>
+        <button type="button" 
+                class="btn btn-primary" 
+                (click)="saveEditedSummary()"
+                [disabled]="isSavingEdit || !editSummaryText.trim()">
+          <span *ngIf="isSavingEdit" class="spinner-border spinner-border-sm me-2"></span>
+          <i *ngIf="!isSavingEdit" class="fas fa-save me-2"></i>
+          {{isSavingEdit ? 'Saving...' : 'Save Changes'}}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
